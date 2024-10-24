@@ -1,6 +1,4 @@
-# Symmetry Discovery Beyond Affine Transformations
-
-This repository is the official implementation of [Symmetry Discovery Beyond Affine Transformations](https://arxiv.org/abs/2406.03619).
+# Symmetry in Machine Learning Using Vector Fields
 
 ## Introduction
 
@@ -16,3 +14,6 @@ To install requirements:
 pip install -r requirements.txt
 ```
 
+## Associated Papers
+
+[Symmetry Discovery Beyond Affine Transformations](https://arxiv.org/abs/2406.03619) (NeurIPS 2024)
