@@ -1,0 +1,8 @@
+TWO NOTES ABOUT THE FILES
+
+We have compressed the "MRM_Transformed_Daily.csv" file, due to the size of the
+file. Before running the "BearLake.ipynb" file, please extract the file from the
+associated zipped folder.
+
+The "RocketPhate.ipynb" file takes close to 32 GB of RAM to run, at least as 
+written. The file was executed on a server equipped with 144 GB of RAM.
