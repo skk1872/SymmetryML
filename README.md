@@ -6,13 +6,6 @@ Continuous symmetry discovery has recently been approached using large models su
 
 To discover symmetry in data, a function which characterizes the data must first be given (or estimated). This can take the form of estimating the underlying data distribution, applying level set estimation, or metric tensor estimation. Other ways of characterizing/summarizing data in terms of smooth functions may also be applied.
 
-## Requirements
-
-To install requirements:
-
-```setup
-pip install -r requirements.txt
-```
 
 ## Associated Papers
 
