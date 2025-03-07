@@ -30,9 +30,10 @@ class MLP(nn.Module):
 
 model = MLP()
 
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-criterion = nn.MSELoss()
+learning_rate = 0.001
 num_epochs = 5000
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+criterion = nn.MSELoss()
 loss_history = []
 
 for epoch in range(num_epochs):
@@ -46,6 +47,9 @@ for epoch in range(num_epochs):
     if (epoch + 1) % 500 == 0:
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.6f}")
 
+final_loss = loss_history[-1]
+print(f"Training completed: {num_epochs} epochs, learning rate = {learning_rate}, final training loss = {final_loss:.6f}")
+
 plt.figure(figsize=(8,4))
 plt.plot(loss_history)
 plt.xlabel("Epoch")
@@ -53,14 +57,22 @@ plt.ylabel("MSE Loss")
 plt.title("Training Loss History")
 plt.show()
 
+grid_points = 100
+x_test = np.linspace(-1, 1, grid_points)
+y_test = np.linspace(-1, 1, grid_points)
+X_test, Y_test = np.meshgrid(x_test, y_test)
+test_data = np.stack([X_test.ravel(), Y_test.ravel()], axis=1)
+test_tensor = torch.tensor(test_data, dtype=torch.float32)
 model.eval()
 with torch.no_grad():
-    preds = model(data_tensor).squeeze().numpy()
+    preds_test = model(test_tensor).squeeze().numpy().reshape(X_test.shape)
+
 plt.figure(figsize=(6,6))
-plt.scatter(labels, preds, alpha=0.5)
-plt.xlabel("True f(x,y)")
-plt.ylabel("Predicted f(x,y)")
-plt.title("True vs Predicted Values")
+contour = plt.contourf(X_test, Y_test, preds_test, levels=50, cmap='viridis')
+plt.colorbar(contour)
+plt.xlabel("x")
+plt.ylabel("y")
+plt.title("Contour Plot of Network Predictions (f(x,y))")
 plt.show()
 
 data_tensor.requires_grad = True
@@ -82,3 +94,16 @@ plt.xlabel("Directional Derivative along (-y,x)")
 plt.ylabel("Frequency")
 plt.title("Histogram of Directional Derivative")
 plt.show()
+
+f_x = grads[:, 0].detach().numpy()
+f_y = grads[:, 1].detach().numpy()
+x_np = data_tensor[:, 0].detach().numpy()
+y_np = data_tensor[:, 1].detach().numpy()
+
+F = np.column_stack([x_np * f_x, y_np * f_x, f_x, x_np * f_y, y_np * f_y, f_y])
+U, S, Vt = np.linalg.svd(F, full_matrices=False)
+P = Vt[-1, :]
+
+print("Recovered infinitesimal generator coefficients (up to scale):")
+print(f"a: {P[0]:.4f}, b: {P[1]:.4f}, c: {P[2]:.4f}, d: {P[3]:.4f}, e: {P[4]:.4f}, f: {P[5]:.4f}")
+print("Ground truth coefficients for rotation (-y, x): a=0, b=-1, c=0, d=1, e=0, f=0")
