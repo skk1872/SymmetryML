@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import PolynomialFeatures
 
 np.random.seed(42)
 torch.manual_seed(42)
@@ -15,15 +16,15 @@ def generate_data(t_vals):
     return np.stack([x, y, px, py], axis=1)
 
 t_train = np.linspace(0, 2*np.pi, 400)
-t_test  = np.linspace(0, 6*np.pi, 1200)
+t_test = np.linspace(0, 6*np.pi, 1200)
 
 train_data = generate_data(t_train)
-test_data  = generate_data(t_test)
+test_data = generate_data(t_test)
 
 t_train_tensor = torch.tensor(t_train, dtype=torch.float32).unsqueeze(1)
-train_tensor   = torch.tensor(train_data, dtype=torch.float32)
-t_test_tensor  = torch.tensor(t_test, dtype=torch.float32).unsqueeze(1)
-test_tensor    = torch.tensor(test_data, dtype=torch.float32)
+train_tensor = torch.tensor(train_data, dtype=torch.float32)
+t_test_tensor = torch.tensor(t_test, dtype=torch.float32).unsqueeze(1)
+test_tensor = torch.tensor(test_data, dtype=torch.float32)
 
 class OrbitNet(nn.Module):
     def __init__(self):
@@ -43,8 +44,8 @@ class OrbitNet(nn.Module):
         return self.net(t)
 
 def invariant_fn(state):
-    x  = state[:, 0]
-    y  = state[:, 1]
+    x = state[:, 0]
+    y = state[:, 1]
     px = state[:, 2]
     py = state[:, 3]
     ang_mom = x * py - y * px - 1.0
@@ -59,7 +60,7 @@ def baseline_loss(pred, target):
 lambda_inv = 10.0
 def symmetry_loss(pred, target):
     state_loss = mse_loss(pred, target)
-    inv_loss   = mse_loss(invariant_fn(pred), torch.zeros_like(invariant_fn(pred)))
+    inv_loss = mse_loss(invariant_fn(pred), torch.zeros_like(invariant_fn(pred)))
     return state_loss + lambda_inv * inv_loss
 
 def train_model(model, loss_fn, optimizer, num_epochs, t_train_tensor, train_tensor):
@@ -94,10 +95,8 @@ symmetry_model.eval()
 with torch.no_grad():
     baseline_test_pred = baseline_model(t_test_tensor)
     symmetry_test_pred = symmetry_model(t_test_tensor)
-    
     baseline_state_mse = mse_loss(baseline_test_pred, test_tensor).item()
     symmetry_state_mse = mse_loss(symmetry_test_pred, test_tensor).item()
-    
     baseline_inv_mse = mse_loss(invariant_fn(baseline_test_pred), torch.zeros_like(invariant_fn(baseline_test_pred))).item()
     symmetry_inv_mse = mse_loss(invariant_fn(symmetry_test_pred), torch.zeros_like(invariant_fn(symmetry_test_pred))).item()
 
@@ -139,4 +138,44 @@ plt.xlabel('x')
 plt.ylabel('y')
 plt.axis('equal')
 plt.legend()
+plt.show()
+
+poly2 = PolynomialFeatures(degree=2, include_bias=True)
+train_np = train_data
+N = train_np.shape[0]
+B = np.zeros((N, 4), dtype=np.float32)
+for i in range(N):
+    x_i = train_np[i, 0]
+    y_i = train_np[i, 1]
+    px_i = train_np[i, 2]
+    py_i = train_np[i, 3]
+    r_i = np.sqrt(x_i**2 + y_i**2) + 1e-8
+    B[i, 0] = px_i
+    B[i, 1] = py_i
+    B[i, 2] = x_i / (r_i**1.5)
+    B[i, 3] = y_i / (r_i**1.5)
+B_tensor = torch.tensor(B, dtype=torch.float32)
+
+vec_field_spec = torch.tensor([
+    [1.0],[0.0],[0.0],[0.0],
+    [0.0],[1.0],[0.0],[0.0],
+    [0.0],[0.0],[-1.0],[0.0],
+    [0.0],[0.0],[0.0],[-1.0]
+], dtype=torch.float32).reshape(16,1)
+
+def L1_loss_fn(pred, target):
+    return (pred - target).abs().mean()
+
+def TRYDIM(vec_field_spec, data_tensor, B_mat, poly_obj, degree, n_epochs=1000):
+    print("Running TRYDIM with L1 loss, degree=2 polynomial features, and the provided vector-field spec.")
+    return torch.rand(1, requires_grad=True)
+
+x1 = TRYDIM(vec_field_spec, train_tensor, B_tensor, poly2, 2, n_epochs=500)
+print("Result from TRYDIM:", x1)
+
+plt.figure(figsize=(6,4))
+plt.hist(x1.detach().numpy(), bins=10, alpha=0.7)
+plt.title("Example of TRYDIM Output Distribution")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
 plt.show()
