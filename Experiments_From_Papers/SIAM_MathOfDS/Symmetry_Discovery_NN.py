@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import PolynomialFeatures
+import scipy.optimize
 
 N = 1000
 theta = np.random.uniform(0, 2*np.pi, N)
@@ -75,35 +77,53 @@ plt.ylabel("y")
 plt.title("Contour Plot of Network Predictions (f(x,y))")
 plt.show()
 
-data_tensor.requires_grad = True
-output = model(data_tensor)
-grad_outputs = torch.ones_like(output)
-grads = torch.autograd.grad(outputs=output, inputs=data_tensor, grad_outputs=grad_outputs, create_graph=True)[0]
-x_tensor = data_tensor[:, 0]
-y_tensor = data_tensor[:, 1]
-directional_deriv = -y_tensor * grads[:, 0] + x_tensor * grads[:, 1]
-mean_deriv = directional_deriv.abs().mean().item()
-std_deriv = directional_deriv.std().item()
+def mlp_scalar_func(pt):
+    pt_tensor = torch.tensor(pt[None, :], dtype=torch.float32)
+    model.eval()
+    with torch.no_grad():
+        val = model(pt_tensor).item()
+    return val
 
-print(f"Mean absolute directional derivative along (-y, x): {mean_deriv:.6f}")
-print(f"Standard deviation of directional derivative: {std_deriv:.6f}")
+epsilon = 1e-6
+grads_list = []
+for pt in data:
+    df = scipy.optimize.approx_fprime(pt, mlp_scalar_func, epsilon)
+    grads_list.append(df)
 
-plt.figure(figsize=(8,4))
-plt.hist(directional_deriv.detach().numpy(), bins=50)
-plt.xlabel("Directional Derivative along (-y,x)")
-plt.ylabel("Frequency")
-plt.title("Histogram of Directional Derivative")
-plt.show()
+grads = np.array(grads_list)
 
-f_x = grads[:, 0].detach().numpy()
-f_y = grads[:, 1].detach().numpy()
-x_np = data_tensor[:, 0].detach().numpy()
-y_np = data_tensor[:, 1].detach().numpy()
+poly = PolynomialFeatures(degree=1, include_bias=False)
+x_np = data[:, 0]
+y_np = data[:, 1]
+f_x = grads[:, 0]
+f_y = grads[:, 1]
 
-F = np.column_stack([x_np * f_x, y_np * f_x, f_x, x_np * f_y, y_np * f_y, f_y])
-U, S, Vt = np.linalg.svd(F, full_matrices=False)
+extB = np.column_stack([
+    x_np * f_x,
+    y_np * f_x,
+    f_x,
+    x_np * f_y,
+    y_np * f_y,
+    f_y
+])
+
+U, S, Vt = np.linalg.svd(extB, full_matrices=False)
 P = Vt[-1, :]
 
 print("Recovered infinitesimal generator coefficients (up to scale):")
 print(f"a: {P[0]:.4f}, b: {P[1]:.4f}, c: {P[2]:.4f}, d: {P[3]:.4f}, e: {P[4]:.4f}, f: {P[5]:.4f}")
 print("Ground truth coefficients for rotation (-y, x): a=0, b=-1, c=0, d=1, e=0, f=0")
+
+directional_deriv = -y_np * f_x + x_np * f_y
+mean_deriv = np.mean(np.abs(directional_deriv))
+std_deriv = np.std(directional_deriv)
+
+print(f"Mean absolute directional derivative along (-y, x): {mean_deriv:.6f}")
+print(f"Standard deviation of directional derivative: {std_deriv:.6f}")
+
+plt.figure(figsize=(8,4))
+plt.hist(directional_deriv, bins=50)
+plt.xlabel("Directional Derivative along (-y,x)")
+plt.ylabel("Frequency")
+plt.title("Histogram of Directional Derivative")
+plt.show()
