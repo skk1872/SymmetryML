@@ -116,22 +116,12 @@ def main():
 
     fig = plt.figure(figsize=(6,6))
     gs = gridspec.GridSpec(2, 2, height_ratios=[1,4], hspace=0.3)
-
-    ax_img7 = fig.add_subplot(gs[0, 0])
-    ax_img8 = fig.add_subplot(gs[0, 1])
-    ax_curve = fig.add_subplot(gs[1, :])
-
-    ax_img7.imshow(((s7.cpu()*0.3081)+0.1307).squeeze(), cmap='gray')
-    ax_img7.axis('off'); ax_img7.set_title("Sample '7'")
-    ax_img8.imshow(((s8.cpu()*0.3081)+0.1307).squeeze(), cmap='gray')
-    ax_img8.axis('off'); ax_img8.set_title("Sample '8'")
-
-    ax_curve.plot(angles, p7_curve, '-o', label="P(7) on '7'")
-    ax_curve.plot(angles, p8_curve, '-o', label="P(8) on '8'")
+    ax_img7 = fig.add_subplot(gs[0, 0]); ax_img8 = fig.add_subplot(gs[0, 1]); ax_curve = fig.add_subplot(gs[1, :])
+    ax_img7.imshow(((s7.cpu()*0.3081)+0.1307).squeeze(), cmap='gray'); ax_img7.axis('off'); ax_img7.set_title("Sample '7'")
+    ax_img8.imshow(((s8.cpu()*0.3081)+0.1307).squeeze(), cmap='gray'); ax_img8.axis('off'); ax_img8.set_title("Sample '8'")
+    ax_curve.plot(angles, p7_curve, '-o', label="P(7) on '7'"); ax_curve.plot(angles, p8_curve, '-o', label="P(8) on '8'")
     ax_curve.set_xlabel("Rotation Angle (°)"); ax_curve.set_ylabel("Probability")
-    ax_curve.set_title("Rotation Invariance")
-    ax_curve.legend(); ax_curve.grid(True)
-
+    ax_curve.set_title("Rotation Invariance"); ax_curve.legend(); ax_curve.grid(True)
     plt.tight_layout(); plt.show()
 
     plt.figure(figsize=(6,4))
@@ -139,6 +129,7 @@ def main():
     plt.errorbar(angles, means8, yerr=stds8, fmt='-o', capsize=5, label="P(8) mean±std")
     plt.xlabel("Rotation Angle (°)"); plt.ylabel("Probability")
     plt.title("Angle-wise Average ± Std")
+    plt.ylim(0, 1)
     plt.legend(); plt.grid(True); plt.tight_layout(); plt.show()
 
 if __name__=='__main__':
